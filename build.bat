@@ -20,8 +20,8 @@ set opt_debug=     -Od -MTd -RTCcsu
 set opt_release=   -O2 -GS-
 set links_debug=   -opt:ref
 set links_release= -opt:ref -subsystem:windows -fixed
-set libs_debug=    user32.lib gdi32.lib winmm.lib
-set libs_release=  user32.lib gdi32.lib winmm.lib kernel32.lib libvcruntime.lib ucrt.lib
+set libs_debug=    user32.lib gdi32.lib winmm.lib opengl32.lib
+set libs_release=  user32.lib gdi32.lib winmm.lib opengl32.lib kernel32.lib libvcruntime.lib ucrt.lib
 
 rem ######################## PARSING SCRIPT ARGUMENTS ##############################################
 
@@ -44,7 +44,6 @@ rem ######################## COMPILATION #######################################
 if not exist build mkdir build
 pushd build
 
-del *.pdb
 call clang-cl %opt% ..\src\windows.c %linkopt% -out:app.exe
 
 popd

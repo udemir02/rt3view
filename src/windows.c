@@ -5,6 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <timeapi.h>
+#include <gl/gl.h>
 
 typedef struct {
 	HDC           device;
@@ -42,6 +43,11 @@ LRESULT wndproc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
 		win32_global.wnd_width  = LOWORD(lparam);
 		win32_global.wnd_height = HIWORD(lparam);
 		return 0;
+	case WM_PAINT:
+		BeginPaint(window, 0);
+		SwapBuffers(win32_global.device);
+		EndPaint(window, 0);
+		return 0;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
@@ -68,13 +74,31 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 
 	RegisterClassA(&wndclass);
 
-	HWND window = CreateWindowA(wndclass.lpszClassName, "Window",
+	HWND window = CreateWindowA(wndclass.lpszClassName, "RT3VIEW",
 				    WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 				    CW_USEDEFAULT, CW_USEDEFAULT,
 				    CW_USEDEFAULT, CW_USEDEFAULT,
 				    0, 0, 0, 0);
 
 	win32_global.device = GetDC(window);
+
+	PIXELFORMATDESCRIPTOR px_format_desired = {
+		.nSize = sizeof(px_format_desired),
+		.nVersion = 1,
+		.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER,
+		.cColorBits = 32,
+		.cAlphaBits = 8,
+		.iLayerType = PFD_MAIN_PLANE,
+		.iPixelType = PFD_TYPE_RGBA
+	};
+
+	int px_format_ind = ChoosePixelFormat(win32_global.device, &px_format_desired);
+	PIXELFORMATDESCRIPTOR px_format;
+	DescribePixelFormat(win32_global.device, px_format_ind, sizeof(px_format), &px_format);
+	SetPixelFormat(win32_global.device, px_format_ind, &px_format);
+
+	HGLRC opengl_rc = wglCreateContext(win32_global.device);
+	int result = wglMakeCurrent(win32_global.device, opengl_rc);
 
 	double start_t = win32_get_time();
 	UINT64 start_c = __rdtsc();
@@ -85,6 +109,11 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 			DispatchMessageA(&msg);
 			TranslateMessage(&msg);
 		}
+
+		glViewport(0, 0, win32_global.wnd_width, win32_global.wnd_height);
+		glClearColor(1.f, 0.f, 1.f, 0.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		SwapBuffers(win32_global.device);
 
 		float work_t = (float)(win32_get_time() - start_t);
 
