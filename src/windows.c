@@ -65,12 +65,13 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 	timeBeginPeriod(1);
 	QueryPerformanceFrequency(&win32_global.perf_hz);
 
-	WNDCLASSA wndclass = {0};
-	wndclass.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-	wndclass.lpfnWndProc   = wndproc;
-	wndclass.hCursor       = LoadCursor(0, IDC_ARROW);
-	wndclass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-	wndclass.lpszClassName = "The Window";
+	WNDCLASSA wndclass = {
+		.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
+		.lpfnWndProc   = wndproc,
+		.hCursor       = LoadCursor(0, IDC_ARROW),
+		.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+		.lpszClassName = "The Window"
+	};
 
 	RegisterClassA(&wndclass);
 
