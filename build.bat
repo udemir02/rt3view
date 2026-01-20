@@ -5,7 +5,7 @@ cd /D "%~dp0"
 rem ######################## COMPILER AND LINKER FLAGS #############################################
 
 set opt_define= -D_CRT_SECURE_NO_WARNINGS
-set opt_common= -Zi -W4 -nologo
+set opt_common= -Zi -Oi -W4 -nologo
 
 set opt_warning= -Wdouble-promotion -Wconversion
 set opt_warning= -Wno-unused-value %opt_warning%
@@ -19,9 +19,9 @@ set opt_all= %opt_define% %opt_common% %opt_warning%
 set opt_debug=     -Od -MTd -RTCcsu
 set opt_release=   -O2 -GS-
 set links_debug=   -opt:ref
-set links_release= -opt:ref -subsystem:windows -fixed
+set links_release= -opt:ref -subsystem:windows -nodefaultlib
 set libs_debug=    user32.lib gdi32.lib winmm.lib opengl32.lib
-set libs_release=  user32.lib gdi32.lib winmm.lib opengl32.lib kernel32.lib libvcruntime.lib ucrt.lib
+set libs_release=  user32.lib gdi32.lib winmm.lib opengl32.lib kernel32.lib
 
 rem ######################## PARSING SCRIPT ARGUMENTS ##############################################
 
