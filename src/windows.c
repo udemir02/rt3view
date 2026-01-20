@@ -107,11 +107,14 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 	double start_t = win32_get_time();
 	UINT64 start_c = __rdtsc();
 
-	MSG msg = {0};
-	while (msg.message != WM_QUIT) {
+	MSG msg;
+	while (1) {
 		while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessageA(&msg);
+
+			if (msg.message == WM_QUIT)
+				return (int)msg.wParam;
 		}
 
 		glViewport(0, 0, GLOBAL.wnd_width, GLOBAL.wnd_height);
