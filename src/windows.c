@@ -8,6 +8,44 @@
 #include <timeapi.h>
 #include <gl/gl.h>
 
+typedef struct {
+	HDC           windowdc;
+	LARGE_INTEGER perf_hz;
+
+	int wnd_width;
+	int wnd_height;
+} win32_global;
+
+static win32_global GLOBAL;
+
+typedef void   (WINAPI *glgenbuffers)    (GLsizei n, GLuint *buffers);
+typedef void   (WINAPI *glbindbuffer)    (GLenum target, GLuint buffer);
+typedef void   (WINAPI *glbufferdata)    (GLenum target, GLsizei size, const void *data, GLenum usage);
+typedef GLuint (WINAPI *glcreateshader)  (GLenum type);
+typedef void   (WINAPI *glshadersource)  (GLuint shader, GLsizei count, const char *str, const GLint *len);
+typedef void   (WINAPI *glcompileshader) (GLuint shader);
+typedef GLuint (WINAPI *glcreateprogram) (void);
+typedef void   (WINAPI *glattachshader)  (GLuint program, GLuint shader);
+typedef void   (WINAPI *gllinkprogram)   (GLuint program);
+typedef void   (WINAPI *gluseprogram)    (GLuint program);
+
+
+#define GLEXT \
+	X(glgenbuffers,    glGenBuffers)    \
+	X(glbindbuffer,    glBindBuffer)    \
+	X(glbufferdata,    glBufferData)    \
+	X(glcreateshader,  glCreateShader)  \
+	X(glshadersource,  glShaderSource)  \
+	X(glcompileshader, glCompileShader) \
+	X(glcreateprogram, glCreateProgram) \
+	X(glattachshader,  glAttachShader)  \
+	X(gllinkprogram,   glLinkProgram)   \
+	X(gluseprogram,    glUseProgram)    \
+
+#define X(type, name) static type name;
+GLEXT
+#undef X
+
 #if DISABLE_CRT
 int _fltused = 0;
 
@@ -25,16 +63,6 @@ void WinMainCRTStartup(void)
 }
 #endif
 
-typedef struct {
-	HDC           device;
-	LARGE_INTEGER perf_hz;
-
-	int wnd_width;
-	int wnd_height;
-} win32_global;
-
-static win32_global GLOBAL;
-
 static double win32_get_time(void)
 {
 	LARGE_INTEGER counter;
@@ -51,7 +79,7 @@ LRESULT wndproc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
 		return 0;
 	case WM_PAINT:
 		BeginPaint(window, 0);
-		SwapBuffers(GLOBAL.device);
+		SwapBuffers(GLOBAL.windowdc);
 		EndPaint(window, 0);
 		return 0;
 	case WM_DESTROY:
@@ -84,25 +112,29 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 				    CW_USEDEFAULT, CW_USEDEFAULT,
 				    0, 0, hinst, 0);
 
-	GLOBAL.device = GetDC(window);
+	GLOBAL.windowdc = GetDC(window);
 
-	PIXELFORMATDESCRIPTOR px_format_desired = {
-		.nSize = sizeof(px_format_desired),
-		.nVersion = 1,
-		.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER,
-		.cColorBits = 32,
-		.cAlphaBits = 8,
-		.iLayerType = PFD_MAIN_PLANE,
-		.iPixelType = PFD_TYPE_RGBA
+	PIXELFORMATDESCRIPTOR px_format = {
+		.nSize        = sizeof(px_format),
+		.nVersion     = 1,
+		.dwFlags      = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER,
+		.iPixelType   = PFD_TYPE_RGBA,
+		.cColorBits   = 32,
+		.cDepthBits   = 24,
+		.cStencilBits = 8,
+		.iLayerType   = PFD_MAIN_PLANE,
 	};
 
-	int px_format_ind = ChoosePixelFormat(GLOBAL.device, &px_format_desired);
-	PIXELFORMATDESCRIPTOR px_format;
-	DescribePixelFormat(GLOBAL.device, px_format_ind, sizeof(px_format), &px_format);
-	SetPixelFormat(GLOBAL.device, px_format_ind, &px_format);
+	SetPixelFormat(GLOBAL.windowdc, ChoosePixelFormat(GLOBAL.windowdc, &px_format), &px_format);
 
-	HGLRC opengl_rc = wglCreateContext(GLOBAL.device);
-	wglMakeCurrent(GLOBAL.device, opengl_rc);
+	HGLRC openglrc = wglCreateContext(GLOBAL.windowdc);
+
+	if (wglMakeCurrent(GLOBAL.windowdc, openglrc)) {
+	}
+
+#define X(type, name) name = (type)wglGetProcAddress(#name);
+	GLEXT
+#undef X
 
 	double start_t = win32_get_time();
 	UINT64 start_c = __rdtsc();
@@ -120,7 +152,7 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 		glViewport(0, 0, GLOBAL.wnd_width, GLOBAL.wnd_height);
 		glClearColor(1.f, 0.f, 1.f, 0.f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		SwapBuffers(GLOBAL.device);
+		SwapBuffers(GLOBAL.windowdc);
 
 		float work_t = (float)(win32_get_time() - start_t);
 
