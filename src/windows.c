@@ -8,6 +8,23 @@
 #include <timeapi.h>
 #include <gl/gl.h>
 
+#if DISABLE_CRT
+int _fltused = 0;
+
+#pragma function(memset)
+void *memset(void *_Dst, int _Val, size_t _Size)
+{
+	char *p = (char *)_Dst;
+	while (_Size--) *p++ = (char)_Val;
+	return _Dst;
+}
+
+void WinMainCRTStartup(void)
+{
+	ExitProcess((unsigned int)WinMain(GetModuleHandle(0), 0, 0, 0));
+}
+#endif
+
 typedef struct {
 	HDC           device;
 	LARGE_INTEGER perf_hz;
@@ -57,11 +74,7 @@ LRESULT wndproc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
 	return DefWindowProcA(window, msg, wparam, lparam);
 }
 
-#if DISABLE_CRT
-void WinMainCRTStartup(void)
-#else
 int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
-#endif
 {
 	timeBeginPeriod(1);
 	QueryPerformanceFrequency(&win32_global.perf_hz);
@@ -72,7 +85,7 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 		.hCursor       = LoadCursor(0, IDC_ARROW),
 		.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
 		.lpszClassName = "W",
-		.hInstance     = GetModuleHandle(0),
+		.hInstance     = hinst,
 	};
 
 	RegisterClassA(&wndclass);
@@ -81,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 				    WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 				    CW_USEDEFAULT, CW_USEDEFAULT,
 				    CW_USEDEFAULT, CW_USEDEFAULT,
-				    0, 0, wndclass.hInstance, 0);
+				    0, 0, hinst, 0);
 
 	win32_global.device = GetDC(window);
 
@@ -120,12 +133,12 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 
 		float work_t = (float)(win32_get_time() - start_t);
 
-		if (work_t < TARGET_MS) {
-			DWORD sleep_ms = (DWORD)(1000 * (TARGET_MS - work_t));
+		if (work_t < TARGET_T) {
+			DWORD sleep_ms = (DWORD)(1000 * (TARGET_T - work_t));
 			if (sleep_ms > 1)
 				Sleep(sleep_ms - 1);
 
-			while (work_t < TARGET_MS) {
+			while (work_t < TARGET_T) {
 				work_t = (float)(win32_get_time() - start_t);
 			}
 		}
