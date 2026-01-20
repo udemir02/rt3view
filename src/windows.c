@@ -1,4 +1,5 @@
-#define TARGET_MS (1 / 60.f)
+#define TARGET_FPS 60.f
+#define TARGET_T (1 / TARGET_FPS)
 
 #define _UNICODE
 #define UNICODE
