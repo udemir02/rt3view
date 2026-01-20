@@ -108,8 +108,8 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 	MSG msg = {0};
 	while (msg.message != WM_QUIT) {
 		while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
-			DispatchMessageA(&msg);
 			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
 		}
 
 		glViewport(0, 0, win32_global.wnd_width, win32_global.wnd_height);
