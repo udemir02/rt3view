@@ -70,7 +70,8 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 		.lpfnWndProc   = wndproc,
 		.hCursor       = LoadCursor(0, IDC_ARROW),
 		.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
-		.lpszClassName = "The Window"
+		.lpszClassName = "W",
+		.hInstance     = GetModuleHandle(0),
 	};
 
 	RegisterClassA(&wndclass);
@@ -79,7 +80,7 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 				    WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 				    CW_USEDEFAULT, CW_USEDEFAULT,
 				    CW_USEDEFAULT, CW_USEDEFAULT,
-				    0, 0, 0, 0);
+				    0, 0, wndclass.hInstance, 0);
 
 	win32_global.device = GetDC(window);
 
