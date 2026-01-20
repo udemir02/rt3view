@@ -31,39 +31,27 @@ typedef struct {
 
 	int wnd_width;
 	int wnd_height;
-} win32_global_var;
+} win32_global;
 
-static win32_global_var win32_global;
-
-#include <stdio.h>
-#include <stdarg.h>
-static void win32_print(char *format, ...)
-{
-	char buf[1024];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
-	OutputDebugStringA(buf);
-}
+static win32_global GLOBAL;
 
 static double win32_get_time(void)
 {
 	LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
-	return (double)counter.QuadPart / (double)win32_global.perf_hz.QuadPart;
+	return (double)counter.QuadPart / (double)GLOBAL.perf_hz.QuadPart;
 }
 
 LRESULT wndproc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	switch (msg) {
 	case WM_SIZE:
-		win32_global.wnd_width  = LOWORD(lparam);
-		win32_global.wnd_height = HIWORD(lparam);
+		GLOBAL.wnd_width  = LOWORD(lparam);
+		GLOBAL.wnd_height = HIWORD(lparam);
 		return 0;
 	case WM_PAINT:
 		BeginPaint(window, 0);
-		SwapBuffers(win32_global.device);
+		SwapBuffers(GLOBAL.device);
 		EndPaint(window, 0);
 		return 0;
 	case WM_DESTROY:
@@ -77,7 +65,7 @@ LRESULT wndproc(HWND window, UINT msg, WPARAM wparam, LPARAM lparam)
 int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 {
 	timeBeginPeriod(1);
-	QueryPerformanceFrequency(&win32_global.perf_hz);
+	QueryPerformanceFrequency(&GLOBAL.perf_hz);
 
 	WNDCLASSA wndclass = {
 		.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
@@ -96,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 				    CW_USEDEFAULT, CW_USEDEFAULT,
 				    0, 0, hinst, 0);
 
-	win32_global.device = GetDC(window);
+	GLOBAL.device = GetDC(window);
 
 	PIXELFORMATDESCRIPTOR px_format_desired = {
 		.nSize = sizeof(px_format_desired),
@@ -108,13 +96,13 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 		.iPixelType = PFD_TYPE_RGBA
 	};
 
-	int px_format_ind = ChoosePixelFormat(win32_global.device, &px_format_desired);
+	int px_format_ind = ChoosePixelFormat(GLOBAL.device, &px_format_desired);
 	PIXELFORMATDESCRIPTOR px_format;
-	DescribePixelFormat(win32_global.device, px_format_ind, sizeof(px_format), &px_format);
-	SetPixelFormat(win32_global.device, px_format_ind, &px_format);
+	DescribePixelFormat(GLOBAL.device, px_format_ind, sizeof(px_format), &px_format);
+	SetPixelFormat(GLOBAL.device, px_format_ind, &px_format);
 
-	HGLRC opengl_rc = wglCreateContext(win32_global.device);
-	int result = wglMakeCurrent(win32_global.device, opengl_rc);
+	HGLRC opengl_rc = wglCreateContext(GLOBAL.device);
+	wglMakeCurrent(GLOBAL.device, opengl_rc);
 
 	double start_t = win32_get_time();
 	UINT64 start_c = __rdtsc();
@@ -126,10 +114,10 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 			DispatchMessageA(&msg);
 		}
 
-		glViewport(0, 0, win32_global.wnd_width, win32_global.wnd_height);
+		glViewport(0, 0, GLOBAL.wnd_width, GLOBAL.wnd_height);
 		glClearColor(1.f, 0.f, 1.f, 0.f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		SwapBuffers(win32_global.device);
+		SwapBuffers(GLOBAL.device);
 
 		float work_t = (float)(win32_get_time() - start_t);
 
@@ -147,23 +135,21 @@ int WINAPI WinMain(HINSTANCE hinst, HINSTANCE pinst, LPSTR cmdline, int cmdshow)
 		double end_t = win32_get_time();
 
 #if 1
-		double frame_t = end_t - start_t;
-		UINT64 frame_c = end_c - start_c;
+		float frame_t = (float)(end_t - start_t);
+	       	float frame_c = (float)(end_c - start_c);
 
-		double mspf = 1000. * frame_t;
-		double fps  = 1. / frame_t;
-		double mcpf = (double)frame_c / (1000. * 1000.);
-		win32_print("%.2lfm/s %.2lffps %.2lfmc/f\n", mspf, fps, mcpf);
+		int mspf = (int)((1000.f * frame_t) + .5f);
+		int fps  = (int)((1.f / frame_t) + .5f);
+		int mcpf = (int)((frame_c / (1000.f * 1000.f)) + .5f);
+		char buf[256];
+		wsprintfA(buf, "%dm/s %dfps %dmc/f\n", mspf, fps, mcpf);
+		OutputDebugStringA(buf);
 #endif
 
 		start_c = end_c;
 		start_t = end_t;
 	}
 
-#if DISABLE_CRT
-	ExitProcess(0);
-#else
 	return (int)msg.wParam;
-#endif
 }
 
