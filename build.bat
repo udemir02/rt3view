@@ -4,15 +4,9 @@ cd /D "%~dp0"
 
 rem ######################## COMPILER AND LINKER FLAGS #############################################
 
-set opt_define= -D_CRT_SECURE_NO_WARNINGS
-set opt_common= -Zi -Oi -W4 -nologo
-
-set opt_warning= -Wdouble-promotion -Wconversion
-set opt_warning= -Wno-unused-value %opt_warning%
-set opt_warning= -Wno-unused-function %opt_warning%
-set opt_warning= -Wno-unused-variable %opt_warning%
-set opt_warning= -Wno-unused-parameter %opt_warning%
-set opt_warning= -Wno-unused-but-set-variable %opt_warning%
+set opt_define=  -D_CRT_SECURE_NO_WARNINGS
+set opt_common=  -Zi -Oi -W4 -nologo -FC
+set opt_warning= -wd4100
 
 set opt_all= %opt_define% %opt_common% %opt_warning%
 
@@ -44,6 +38,6 @@ rem ######################## COMPILATION #######################################
 if not exist build mkdir build
 pushd build
 
-call clang-cl %opt% ..\src\windows.c %linkopt% -out:app.exe
+call cl %opt% ..\src\windows.c %linkopt% -out:app.exe
 
 popd
